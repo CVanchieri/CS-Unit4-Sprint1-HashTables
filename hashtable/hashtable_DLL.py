@@ -1,11 +1,12 @@
-from LinkedList import LinkedList, Node
+from DoublyLinkedList import DoublyLinkedList
 
-### Hash Table LinkedList ###
+### Doubly LinkedList hashtable ###
 class HashTableEntry:
     """
     Linked List hash table key/value pair
     """
     def __init__(self, key, value):
+        # Your code here
         self.key = key
         self.value = value
         self.next = None
@@ -14,16 +15,12 @@ class HashTableEntry:
 MIN_CAPACITY = 8
 
 class HashTable:
-    """
-    A hash table that with `capacity` buckets
-    that accepts string keys
-    Implement this.
-    """
+
     def __init__(self, capacity):
         # Your code here
         self.capacity = capacity
-        self.storage = [None] * self.capacity
-        self.size = 0
+        self.counter = 0
+        self.containers = [DoublyLinkedList() for i in range(capacity)]
 
     def get_num_slots(self):
         """
@@ -34,7 +31,7 @@ class HashTable:
         Implement this.
         """
         # Your code here
-        return len(self.storage)
+        return self.capacity
 
     def get_load_factor(self):
         """
@@ -42,7 +39,7 @@ class HashTable:
         Implement this.
         """
         # Your code here
-        return self.size / self.get_num_slots()
+        return 1.0 - ((self.capacity - self.counter) / self.capacity)
 
     def fnv1(self, key):
         """
@@ -58,8 +55,8 @@ class HashTable:
         """
         # Your code here
         hash = 5381
-        for char in key:
-            hash = (( hash << 5) + hash) + ord(char)
+        for c in key:
+            hash = (hash * 33) + ord(c)
         return hash
 
     def hash_index(self, key):
@@ -68,21 +65,28 @@ class HashTable:
         between within the storage capacity of the hash table.
         """
         #return self.fnv1(key) % self.capacity
-        return self.djb2(key) % len(self.storage)
+        return self.djb2(key) % self.capacity
 
-    def put(self, key, value):
+    def put(self, key, value, resize=True):
         """
         Store the value with the given key.
         Hash collisions should be handled with Linked List Chaining.
         Implement this.
         """
         # Your code here
-        hashed_key = self.hash_index(key)
-        if self.storage[hashed_key] != None:
-            linkedList = self.storage[hashed_key]
-            linkedList.add_to_head((key, value))
-        else:
-            self.storage[hashed_key] = LinkedList(Node((key, value)))
+        self.counter += 1
+        index = self.hash_index(key)
+        full = False
+        for x in self.containers[index]:
+            if x.value.key == key:
+                x.value.value = value
+                full = True
+        if not full:
+            entry = HashTableEntry(key, value)
+            self.containers[index].add_to_tail(entry)
+            self.counter += 1
+        if resize:
+            self.check_load()
 
     def delete(self, key):
         """
@@ -91,14 +95,15 @@ class HashTable:
         Implement this.
         """
         # Your code here
-        hashed_key = self.hash_index(key)
-        if self.storage[hashed_key] == None:
-            return None
-
-        if len(self.storage[hashed_key]) >= 1:
-            self.storage[hashed_key].remove(key)
-        else:
-            self.storage[hashed_key].head = None
+        index = self.hash_index(key)
+        box = self.containers[index]
+        for x in box:
+            if x.value.key == key:
+                box.delete(x)
+                self.counter -= 1
+                self.check_load()
+                return
+        return "WARNING: Key not found."
 
     def get(self, key):
         """
@@ -107,20 +112,12 @@ class HashTable:
         Implement this.
         """
         # Your code here
-        hashed_key = self.hash_index(key)
-        if self.storage[hashed_key] == None:
-            return None
-
-        if len(self.storage[hashed_key]) >= 1:
-            current_head = self.storage[hashed_key].head
-
-            while current_head != None:
-                if current_head.value[0] == key:
-                    return current_head.value[1]
-                current_head = current_head.next
-            return None
-        else:
-            return self.storage[hashed_key].head.value[1]
+        index = self.hash_index(key)
+        box = self.containers[index]
+        for x in box:
+            if x.value.key == key:
+                return x.value.value
+        return None
 
     def resize(self, new_capacity):
         """
@@ -130,25 +127,20 @@ class HashTable:
         """
         # Your code here
         self.capacity = new_capacity
-        value_key_pair = []
-        # Get all key-value from store
-        # Resize Storage
-        # Calculate hash key and insert them in resized storage
+        old_capacity = self.containers
+        self.containers = [DoublyLinkedList() for i in range(self.capacity)]
+        for box in old_capacity:
+            for x in box:
+                self.put(x.value.key, x.value.value)
 
-        # Deep copy
-        for store in self.storage:
-            if len(store) >= 1:
-                current_head = store.head
-                while current_head != None:
-                    value_key_pair.append(current_head.value)
-                    current_head = current_head.next
+    def check_load(self):
+        if self.get_load_factor() > 0.7:
+            self.resize(self.capacity *2)
+        elif self.get_load_factor() < 0.2:
+            if self.capacity < MIN_CAPACITY * 2:
+                self.resize(MIN_CAPACITY)
             else:
-                value_key_pair.append(store[0])
-        # print(value_key_pair[0])
-        self.storage = [None] * self.capacity
-
-        for key_value in value_key_pair:
-            self.put(key_value[0], key_value[1])
+                self.resize(self.capacity // 2)
 
 if __name__ == "__main__":
     ht = HashTable(8)
