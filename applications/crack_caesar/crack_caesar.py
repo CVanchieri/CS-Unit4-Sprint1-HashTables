@@ -67,6 +67,5 @@ if __name__ == "__main__":
     print(f"Replacing {key_value[index]}")
     print(f"With {mapping[key_value[index][1]]}")
     decripted_content = re.sub(f"{key_value[index][0]}", mapping[key_value[index][1]], decripted_content)
-    # break
 
   print(decripted_content)

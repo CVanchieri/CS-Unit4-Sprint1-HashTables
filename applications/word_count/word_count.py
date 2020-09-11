@@ -1,6 +1,20 @@
+import re
+
 def word_count(s):
     # Your code here
-
+    blacklist = re.compile(r'[":;,\.\-\+\=/\\\|\[\]\{\}\(\)\*\^&]')
+    words = blacklist.sub("", s)
+    words = re.sub(r'\s+', ' ', words)
+    words = words.lower().split(' ')
+    word_count = {}
+    for word in words:
+        if word == '':
+            continue
+        if word in word_count:
+            word_count[word] += 1
+        else:
+            word_count[word] = 1
+    return word_count
 
 
 if __name__ == "__main__":
